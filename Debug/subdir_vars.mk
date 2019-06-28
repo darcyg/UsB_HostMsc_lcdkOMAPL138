@@ -4,14 +4,14 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CFG_SRCS += \
-/home/dkoh/ti/pdk_omapl138_1_0_8/packages/ti/drv/usb/example/bios/omap/usb_c674x_omapl138.cfg 
+../usb_c674x_omapl138.cfg 
 
 C_SRCS += \
-/home/dkoh/ti/pdk_omapl138_1_0_8/packages/ti/drv/usb/example/usb_host/msc/fatfs_port_usbmsc.c \
-/home/dkoh/ti/pdk_omapl138_1_0_8/packages/ti/drv/usb/example/shell/fs_shell_app_utils.c \
-/home/dkoh/ti/pdk_omapl138_1_0_8/packages/ti/drv/usb/example/bios/host_msc_main.c \
-/home/dkoh/ti/pdk_omapl138_1_0_8/packages/ti/drv/usb/example/common/timer.c \
-/home/dkoh/ti/pdk_omapl138_1_0_8/packages/ti/drv/usb/example/common/usb_osal.c 
+../fatfs_port_usbmsc.c \
+../fs_shell_app_utils.c \
+../host_msc_main.c \
+../timer.c \
+../usb_osal.c 
 
 GEN_CMDS += \
 ./configPkg/linker.cmd 
@@ -62,10 +62,10 @@ GEN_FILES__QUOTED += \
 "configPkg/compiler.opt" 
 
 C_SRCS__QUOTED += \
-"/home/dkoh/ti/pdk_omapl138_1_0_8/packages/ti/drv/usb/example/usb_host/msc/fatfs_port_usbmsc.c" \
-"/home/dkoh/ti/pdk_omapl138_1_0_8/packages/ti/drv/usb/example/shell/fs_shell_app_utils.c" \
-"/home/dkoh/ti/pdk_omapl138_1_0_8/packages/ti/drv/usb/example/bios/host_msc_main.c" \
-"/home/dkoh/ti/pdk_omapl138_1_0_8/packages/ti/drv/usb/example/common/timer.c" \
-"/home/dkoh/ti/pdk_omapl138_1_0_8/packages/ti/drv/usb/example/common/usb_osal.c" 
+"../fatfs_port_usbmsc.c" \
+"../fs_shell_app_utils.c" \
+"../host_msc_main.c" \
+"../timer.c" \
+"../usb_osal.c" 
 
 

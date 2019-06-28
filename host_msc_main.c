@@ -207,8 +207,6 @@ void usbCoreIntrHandler(uint32_t* pUsbParam);
 #endif
 
 
-extern void consolePrintf(const char *pcString, ...);
-
 /*****************************************************************************
 * main 
 *
@@ -223,7 +221,6 @@ Void taskFxn(UArg a0, UArg a1)
     USB_Config* usb_config;
 #endif
 
-    consolePrintf("\nRTOS USB Host MSC example!!\n");
     //osalTimerTest();
 
 #ifdef USB3SS_EN
@@ -269,7 +266,6 @@ Void taskFxn(UArg a0, UArg a1)
 
         if (rc != 0)
         {
-            consolePrintf("USBHCDMain failed with this error: 0x%x\n", rc);
             while(1);
         }
         if(g_eState == STATE_DEVICE_ENUM)
@@ -293,7 +289,6 @@ Void taskFxn(UArg a0, UArg a1)
                 rc = FATFS_open(0U, NULL, &fatfsHandle);
                 if (rc != FR_OK)
                 {
-                    consolePrintf("Failed to open FATFS\n");
                 }
                 else
                 {
