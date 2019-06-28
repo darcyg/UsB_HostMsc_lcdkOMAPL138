@@ -380,12 +380,12 @@ int main(void)
     sysRegs->KICK0R = 0x83e70b13; // Write Access Key 0
     sysRegs->KICK1R = 0x95A4F1E0; // Write Access Key 1
 
-    //sysRegs->PINMUX9 |= (0x1 << 4); // Set bit4 Pinmux9 for USB Use
-    //sysRegs->PINMUX9&= 0xFFFFFF7F;  // Clear bit 7 Pinmux9 for USB Use
+    sysRegs->PINMUX9 |= (0x1 << 4); // Set bit4 Pinmux9 for USB Use
+    sysRegs->PINMUX9&= 0xFFFFFF7F;  // Clear bit 7 Pinmux9 for USB Use
 
     /* CONFIGURE THE DRVVBUS PIN HERE.*/
     /* See your device-specific System Reference Guide for more informationon how to set up the pinmux.*/
-    CSL_FINST(sysRegs->PINMUX9, SYSCFG_PINMUX9_PINMUX9_7_4, USB0_DRVVBUS);
+    //CSL_FINST(sysRegs->PINMUX9, SYSCFG_PINMUX9_PINMUX9_7_4, USB0_DRVVBUS);
 
     // Reset the USB controller:
     usbRegs->CTRLR|= 0x00000001;

@@ -55,33 +55,6 @@
 
 /* temporary OSAL implementation */
 
-void vconsolePrint(const char* fmt, va_list argp)
-{
-#define MAX_LEN 300
-
-    char buffer[MAX_LEN+1];
-
-#ifdef TIRTOS
-    System_vsnprintf(buffer, MAX_LEN, fmt, argp);
-    /*System_printf("%s", buffer);
-    System_flush();*/
-    UART_printf("%s", buffer);
-#else
-    /* bare metail */
-    vsnprintf(buffer, MAX_LEN, fmt, argp);
-    UART_printf("%s", buffer);
-#endif
-}
-
-void consolePrintf(const char *pcString, ...)
-{
-    va_list argp;
-
-    va_start(argp, pcString);
-    vconsolePrint(pcString, argp);
-    va_end(argp);
-}
-
 void consoleGets(uint8_t* buffer, int32_t size)
 {
     UART_gets((char*)buffer, size);
@@ -101,8 +74,6 @@ void consolePutc(uint8_t ch)
 {
     UART_putc(ch);
 }
-
-
 
 void usb_osalDelayMs(uint32_t delay_ms)
 {

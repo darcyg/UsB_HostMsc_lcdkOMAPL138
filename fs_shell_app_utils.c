@@ -286,7 +286,6 @@ int32_t FSShellAppUtilsCmdBm(int32_t argc, char *argv[]);
 static void processInputCommand(uint8_t* commandBuffer);
 
 /* extern functions */
-extern void consolePrintf(const char *pcString, ...);
 extern void consoleGets(uint8_t* buffer, int32_t size);
 extern void consolePuts(const char *pString, int32_t size);
 extern uint8_t consoleGetc(void);
@@ -449,14 +448,12 @@ int32_t FSShellAppUtilsProcess(void)
                 /* On completion jump to next state. */
                 if(FR_OK == f_opendir(&gFsShellAppUtilsDirObj, gFsShellAppUtilsCwd))
                 {
-                    consolePrintf("%s>", gFsShellAppUtilsCwd);
                     gFsShellAppUtilsCurState = FS_SHELL_APP_UTILS_STATE_READ_COMMAND;
                     retStat = S_PASS;
                 }
                 /* Exit on error. */
                 else
                 {
-                    consolePrintf("%s>", "UNKNOWN");
                     gFsShellAppUtilsCurState = FS_SHELL_APP_UTILS_STATE_MAX;
                     retStat = E_FAIL;
                 }
@@ -467,8 +464,6 @@ int32_t FSShellAppUtilsProcess(void)
             {
                 if(FR_OK == f_opendir(&gFsShellAppUtilsDirObj, gFsShellAppUtilsCwd))
                 {
-                    consoleGets(gFsShellAppUtilsRxBuf, UI_APP_UTILS_MAX_INPUT_SIZE - 1U);
-                    
                     /* apply any user correction into the command */
                     processInputCommand(gFsShellAppUtilsRxBuf);
                     
@@ -478,7 +473,6 @@ int32_t FSShellAppUtilsProcess(void)
                 /* Exit on error. */
                 else
                 {
-                    consolePrintf("%s>", "UNKNOWN");
                     gFsShellAppUtilsCurState = FS_SHELL_APP_UTILS_STATE_MAX;
                     retStat = E_FAIL;
                 }
@@ -497,7 +491,6 @@ int32_t FSShellAppUtilsProcess(void)
                 /* Exit on error. */
                 else
                 {
-                    consolePrintf("%s>", "UNKNOWN");
                     gFsShellAppUtilsCurState = FS_SHELL_APP_UTILS_STATE_MAX;
                     retStat = E_FAIL;
                 }
@@ -591,7 +584,6 @@ int32_t FSShellAppUtilsCmdExecute(uint8_t *pCmdLine,
 				 */
                 else
                 {
-                    consolePrintf("Too many arguments for command processor!\n");
                     retStatus = E_FAIL;
                     break;
                 }
@@ -777,19 +769,6 @@ int32_t FSShellAppUtilsCmdLs(int32_t argc, char *argv[])
              * Print the entry information on a single line with formatting to show
              * the attributes, date, time, size, and name.
              */
-            consolePrintf("%c%c%c%c%c %u/%02u/%02u %02u:%02u %9uB  %s\n",
-                               (gFsShellAppUtilsFileInfo.fattrib & AM_DIR) ? 'D' : '-',
-                               (gFsShellAppUtilsFileInfo.fattrib & AM_RDO) ? 'R' : '-',
-                               (gFsShellAppUtilsFileInfo.fattrib & AM_HID) ? 'H' : '-',
-                               (gFsShellAppUtilsFileInfo.fattrib & AM_SYS) ? 'S' : '-',
-                               (gFsShellAppUtilsFileInfo.fattrib & AM_ARC) ? 'A' : '-',
-                               (gFsShellAppUtilsFileInfo.fdate >> 9) + 1980,
-                               (gFsShellAppUtilsFileInfo.fdate >> 5) & 15,
-                                gFsShellAppUtilsFileInfo.fdate & 31,
-                               (gFsShellAppUtilsFileInfo.ftime >> 11),
-                               (gFsShellAppUtilsFileInfo.ftime >> 5) & 63,
-                                gFsShellAppUtilsFileInfo.fsize,
-                                gFsShellAppUtilsFileInfo.fname);
         }
     }
 
@@ -797,8 +776,6 @@ int32_t FSShellAppUtilsCmdLs(int32_t argc, char *argv[])
     if(FR_OK == fresult)
     {
         /* Print summary lines showing the file, dir, and size totals. */
-        consolePrintf("\n%4u File(s),%10u bytes total\n%4u Dir(s)",
-                           fileCount, totalSize, dirCount);
 
         /* Get the free space. */
         fresult = f_getfree("/", (DWORD *)&totalSize, &pFatFs);
@@ -807,7 +784,6 @@ int32_t FSShellAppUtilsCmdLs(int32_t argc, char *argv[])
         if(FR_OK == fresult)
         {
             /* Display the amount of free space that was calculated. */
-            consolePrintf(", %10uK bytes free\n", totalSize * pFatFs->csize / 2);
         }
     }
 
@@ -869,7 +845,6 @@ int32_t FSShellAppUtilsCmdMkDir(int32_t argc, char *argv[])
         /* Check for the status of create directory.  Inform user and return. */
         if(FR_OK != fresult)
         {
-            consolePrintf("mkdir: %s\n", gFsShellAppUtilsTempPath);
             retStat = E_FAIL;
         }
     }
@@ -904,7 +879,6 @@ int32_t FSShellAppUtilsCmdCd(int32_t argc, char *argv[])
         /* If it can't be opened, then it is a bad path.  Inform user and return. */
         if(FR_OK != fresult)
         {
-            consolePrintf("cd: %s\n", gFsShellAppUtilsTempPath);
             retStat = E_FAIL;
         }
 
@@ -922,7 +896,6 @@ int32_t FSShellAppUtilsCmdCd(int32_t argc, char *argv[])
 int32_t FSShellAppUtilsCmdPwd(int32_t argc, char *argv[])
 {
     /* Print the CWD to the console. */
-    consolePrintf("%s\n", gFsShellAppUtilsCwd);
 
     return S_PASS;
 }
@@ -974,7 +947,6 @@ int32_t FSShellAppUtilsCmdCat(int32_t argc, char *argv[])
             /* If there was some problem opening the file, then return an error. */
             if(fresultRead != FR_OK)
             {
-                consolePrintf("Fail to open file for read !!!!\n");
                 retStat = E_FAIL;
             }
             else
@@ -1009,7 +981,6 @@ int32_t FSShellAppUtilsCmdCat(int32_t argc, char *argv[])
 
                     if(fresultWrite != FR_OK)
                     {
-                        consolePrintf("Fail to open file for write !!!!\n");
                         retStat = E_FAIL;
                     }
                     else
@@ -1046,7 +1017,6 @@ int32_t FSShellAppUtilsCmdCat(int32_t argc, char *argv[])
              */
             if(fresultRead != FR_OK)
             {
-                consolePrintf("Fail to read from file !!!!\n");
                 retStat = E_FAIL;
             }
 
@@ -1063,7 +1033,6 @@ int32_t FSShellAppUtilsCmdCat(int32_t argc, char *argv[])
 
                 if(fresultWrite != FR_OK)
                 {
-                    consolePrintf("Fail to write into file !!!!\n");
                     retStat = E_FAIL;
                 }
             }
@@ -1094,7 +1063,6 @@ int32_t FSShellAppUtilsCmdCat(int32_t argc, char *argv[])
          * keep reading UART until we see an ESC key
          *
          */
-        consolePrintf("Type your content below. Hit ESC to finish!\n");
 
         idx = 0;
         do
@@ -1120,7 +1088,6 @@ int32_t FSShellAppUtilsCmdCat(int32_t argc, char *argv[])
 
                         if(fresultWrite != FR_OK)
                         {
-                            consolePrintf("Fail to write into file !!!!\n");
                             retStat = E_FAIL;
                         }
                     }
@@ -1139,7 +1106,6 @@ int32_t FSShellAppUtilsCmdCat(int32_t argc, char *argv[])
 
                     if(fresultWrite != FR_OK)
                     {
-                        consolePrintf("Fail to write into file !!!!\n");
                         retStat = E_FAIL;
                     }
                 }
@@ -1161,7 +1127,6 @@ int32_t FSShellAppUtilsCmdCat(int32_t argc, char *argv[])
 
 		if(fresultRead != FR_OK)
 		{
-            consolePrintf("Fail to close read file !!!!\n");
             retStat = E_FAIL;
 		}
 	}
@@ -1177,7 +1142,6 @@ int32_t FSShellAppUtilsCmdCat(int32_t argc, char *argv[])
 
 		if(fresultWrite != FR_OK)
 		{
-            consolePrintf("Fail to close write file !!!!\n");
             retStat = E_FAIL;
 		}
 	}
@@ -1193,8 +1157,6 @@ int32_t FSShellAppUtilsCmdHelp(int32_t argc, char *argv[])
     /*
     ** Print some header text.
     */
-    consolePrintf("\nAvailable commands\n");
-    consolePrintf("------------------\n");
 
     /*
     ** Point at the beginning of the command table.
@@ -1210,7 +1172,6 @@ int32_t FSShellAppUtilsCmdHelp(int32_t argc, char *argv[])
         /*
         ** Print the command name and the brief description.
         */
-        consolePrintf("%s%s\n", pEntry->pCmd, pEntry->pHelp);
 
         /*
         ** Advance to the next entry in the table.
@@ -1253,7 +1214,6 @@ static int32_t writing_bm_file(uint32_t ticksPerSec, uint32_t fileSize, uint32_t
     /* If there was some problem opening the file, then return an error. */
     if(fresultWrite != FR_OK)
     {
-        consolePrintf("Fail to open file for BM write !!!!\n");
         retStat = E_FAIL;
     }
 
@@ -1279,13 +1239,11 @@ static int32_t writing_bm_file(uint32_t ticksPerSec, uint32_t fileSize, uint32_t
 
             if(fresultWrite != FR_OK)
             {
-                consolePrintf("Fail to write into BM file !!!!\n");
                 retStat = E_FAIL;
             }
 
             if(bytesWrite != blockSize)
             {
-                consolePrintf("Fail to write full block to BM file !!!!\n");
                 retStat = E_FAIL;
             }
             if(endTime > startTime)
@@ -1314,13 +1272,11 @@ static int32_t writing_bm_file(uint32_t ticksPerSec, uint32_t fileSize, uint32_t
 
             if(fresultWrite != FR_OK)
             {
-                consolePrintf("Fail to write into BM file !!!!\n");
                 retStat = E_FAIL;
             }
 
             if(bytesWrite != remainder)
             {
-                consolePrintf("Fail to write part of BM file !!!!\n");
                 retStat = E_FAIL;
             }
             if(endTime > startTime)
@@ -1337,21 +1293,13 @@ static int32_t writing_bm_file(uint32_t ticksPerSec, uint32_t fileSize, uint32_t
 
         if(fresultWrite != FR_OK)
         {
-            consolePrintf("Fail to close BM write file !!!!\n");
             retStat = E_FAIL;
         }
 
 
-        consolePrintf("\n\n---------------------------------------------------------------\n");
 
         timeSpent = (float)cycleCnt/(float)ticksPerSec;
         data_rate = fileSize/timeSpent/1024/1024;
-
-        consolePrintf("Total Data written : %10u MB\n", fileSize/1024/1024);
-        consolePrintf("BlockSize          : %10u KB\n", blockSize/1024);
-        consolePrintf("Total cycles       : %10u\n", cycleCnt);
-        consolePrintf("Total time         : %10.2f s\n",  timeSpent);
-        consolePrintf("Writing rate       : %10.2f MB/s\n", data_rate);
     }
 
     return retStat;
@@ -1386,7 +1334,6 @@ static int32_t reading_bm_file(uint32_t ticksPerSec, uint32_t fileSize, uint32_t
     /* If there was some problem opening the file, then return an error. */
     if(fresultRead != FR_OK)
     {
-        consolePrintf("Fail to open file for BM read !!!!\n");
         retStat = E_FAIL;
     }
 
@@ -1413,13 +1360,11 @@ static int32_t reading_bm_file(uint32_t ticksPerSec, uint32_t fileSize, uint32_t
 
             if(fresultRead != FR_OK)
             {
-                consolePrintf("Fail to read into BM file !!!!\n");
                 retStat = E_FAIL;
             }
 
             if(usBytesRead != blockSize)
             {
-                consolePrintf("Fail to read full block to BM file !!!!\n");
                 retStat = E_FAIL;
             }
             if(endTime > startTime)
@@ -1448,13 +1393,11 @@ static int32_t reading_bm_file(uint32_t ticksPerSec, uint32_t fileSize, uint32_t
 
             if(fresultRead != FR_OK)
             {
-                consolePrintf("Fail to read BM file !!!!\n");
                 retStat = E_FAIL;
             }
 
             if(usBytesRead != remainder)
             {
-                consolePrintf("Fail to read part of BM file !!!!\n");
                 retStat = E_FAIL;
             }
             if(endTime > startTime)
@@ -1467,23 +1410,15 @@ static int32_t reading_bm_file(uint32_t ticksPerSec, uint32_t fileSize, uint32_t
             }
         }
 
-        consolePrintf("---------------------------------------------------------------\n");
 
         timeSpent = (float)cycleCnt/(float)ticksPerSec;
         data_rate = fileSize/timeSpent/1024/1024;
-
-        consolePrintf("Total Data Read    : %10u MB\n", fileSize/1024/1024);
-        consolePrintf("BlockSize          : %10u KB\n", blockSize/1024);
-        consolePrintf("Total cycles       : %10u\n", cycleCnt); 
-        consolePrintf("Total time         : %10.2f s\n", timeSpent);
-        consolePrintf("Reading rate       : %10.2f MB/s\n", data_rate);
     }
 
     fresultRead = f_close(&gFsShellAppUtilsReadFileObj);
 
     if(fresultRead != FR_OK)
     {
-        consolePrintf("Fail to close BM read file !!!!\n");
         retStat = E_FAIL;
     }
 
@@ -1529,12 +1464,10 @@ int32_t FSShellAppUtilsCmdBm(int32_t argc, char *argv[])
      */
     retStat = FSShellAppUtilsFrmtPath(argv[1U], gFsShellAppUtilsTempPath);
 
-    consolePrintf("\nStarting throughput test\n");
  
     usb_osalInitPerfUnit();
 
     /* find number of ticks per second */
-    consolePrintf("Calibration Start\n");
 
     /* 
      * delay 1 sec to find number of ticks per second
@@ -1553,8 +1486,6 @@ int32_t FSShellAppUtilsCmdBm(int32_t argc, char *argv[])
 
     ticksPerSec = timeDiff;
  
-    consolePrintf("Ticks per seconds = %u\n\n", ticksPerSec);
-    consolePrintf("Starting measurement....\n");
 
     /* for each of the defined block sizes */
     for(blkSize=0;blkSize<NUM_BLOCK_SIZES;blkSize++)
@@ -1572,8 +1503,6 @@ int32_t FSShellAppUtilsCmdBm(int32_t argc, char *argv[])
 
     if (S_PASS == retStat)
     {
-        consolePrintf("---------------------------------------------------------------\n");
-        consolePrintf("All tests passed\n");
     }
 
 #endif
