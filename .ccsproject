@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?ccsproject version="1.0"?>
+<projectOptions>
+	<ccsVersion value="8.3.0"/>
+	<deviceVariant value="com.ti.ccstudio.deviceModel.C6000.GenericC674xDevice"/>
+	<deviceFamily value="C6000"/>
+	<deviceEndianness value="little"/>
+	<codegenToolVersion value="8.3.2"/>
+	<isElfFormat value="true"/>
+	<rts value="libc.a"/>
+	<createSlaveProjects value=""/>
+	<filesToOpen value=""/>
+	<origin value="/home/dkoh/ti/pdk_omapl138_1_0_8/packages/MyExampleProjects/USB_HostMsc_lcdkOMAPL138_c674xExampleProject"/>
+	<isTargetManual value="false"/>
+	<connection value="common/targetdb/connections/TIXDS2XXUSB_Connection.xml"/>
+</projectOptions>

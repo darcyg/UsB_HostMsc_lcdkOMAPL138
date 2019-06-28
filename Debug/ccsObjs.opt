@@ -1,0 +1,1 @@
+"./fatfs_port_usbmsc.obj" "./fs_shell_app_utils.obj" "./host_msc_main.obj" "./timer.obj" "./usb_osal.obj" -l"configPkg/linker.cmd" -llibc.a 
