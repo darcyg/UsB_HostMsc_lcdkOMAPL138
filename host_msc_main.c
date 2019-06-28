@@ -2,6 +2,34 @@
 /*                             Include Files                                  */
 /* ========================================================================== */
 
+#include <xdc/std.h>
+#include <xdc/cfg/global.h>
+#include <xdc/runtime/System.h>
+#include <stdio.h>
+#include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/BIOS.h>
+#include <xdc/runtime/Error.h>
+#include <ti/board/board.h>
+#include <ti/board/src/lcdkOMAPL138/include/board_internal.h>
+#include <ti/csl/soc.h>
+#include <ti/csl/cslr_usb.h>
+#include <ti/csl/cslr_syscfg.h>
+#include "ti/drv/usb/example/common/hardware.h"
+#include <ti/fs/fatfs/diskio.h>
+#include <ti/fs/fatfs/FATFS.h>
+#include "timer.h"
+#include "types.h"
+#include "fatfs_port_usbmsc.h"
+#include "fs_shell_app_utils.h"
+#include <ti/drv/usb/usb_drv.h>
+#include <ti/drv/usb/usb_osal.h>
+#include "usblib.h"
+#include "usbhost.h"
+#include "usbhmsc.h"
+#include <ti/drv/uart/UART_stdio.h>
+
+
+
 /* XDCtools Header files */
 #include <xdc/std.h>
 #include <xdc/cfg/global.h>
@@ -179,7 +207,6 @@ Void taskFxn(UArg a0, UArg a1)
 
     if (usb_handle == 0) 
     {
-        UART_printStatus("\n Some tests have failed.\n");
         /* failed to open the USB driver */
         while(1);
     }
@@ -199,8 +226,6 @@ Void taskFxn(UArg a0, UArg a1)
     * Open an instance of the mass storage class driver.
     */
     g_ulMSCInstance = USBHMSCDriveOpen(usb_host_params.instanceNo, 0, MSCCallback);
-
-    UART_printStatus("\n Test in progress.\n");
 
     while(1) {    
         rc = USBHCDMain(USB_INSTANCE, g_ulMSCInstance);
@@ -342,14 +367,105 @@ void usbCoreIntrHandler(uint32_t* pUsbParam)
 *****************************************************************************/
 int main(void)
 {
+    Uint16 i;
 
     Task_Handle task;
     Task_Params params;
     Error_Block eb;
 
-    Board_initCfg boardCfg;
-    boardCfg = BOARD_INIT_MODULE_CLOCK |BOARD_INIT_PINMUX_CONFIG |BOARD_INIT_UART_STDIO;
-    Board_init(boardCfg);
+    CSL_SyscfgRegsOvly 	sysRegs = (CSL_SyscfgRegsOvly)(CSL_SYSCFG_0_REGS);
+    CSL_Usb_otgRegsOvly usbRegs = (CSL_Usb_otgRegsOvly)CSL_USB_0_REGS;
+
+    // BOARD UNLOCK
+    sysRegs->KICK0R = 0x83e70b13; // Write Access Key 0
+    sysRegs->KICK1R = 0x95A4F1E0; // Write Access Key 1
+
+    //sysRegs->PINMUX9 |= (0x1 << 4); // Set bit4 Pinmux9 for USB Use
+    //sysRegs->PINMUX9&= 0xFFFFFF7F;  // Clear bit 7 Pinmux9 for USB Use
+
+    /* CONFIGURE THE DRVVBUS PIN HERE.*/
+    /* See your device-specific System Reference Guide for more informationon how to set up the pinmux.*/
+    CSL_FINST(sysRegs->PINMUX9, SYSCFG_PINMUX9_PINMUX9_7_4, USB0_DRVVBUS);
+
+    // Reset the USB controller:
+    usbRegs->CTRLR|= 0x00000001;
+
+    // Wait until controller is finished with Reset.
+    // When done, it will clear the RESET bit field.
+    while((usbRegs->CTRLR& 0x1) == 1); 
+
+    // RESET: Hold PHY in Reset
+    sysRegs->CFGCHIP2 |= 0x00008000; // Hold PHY in Reset
+
+    // Drive Reset for few clock cycles
+    for (i=0;i<50; i++); sysRegs->CFGCHIP2&= 0xFFFF7FFF;// Release PHY from Reset
+
+    /* Configure PHY with the Desired Operation*/
+
+    // OTGMODE
+    sysRegs->CFGCHIP2&= 0xFFFF9FFF;// 00=> Do Not OverridePHY Values
+
+    // PHYPWDN
+    sysRegs->CFGCHIP2&= 0xFFFFFBFF;// 1/0 => PowerdDown/NormalOperation
+
+    // OTGPWRDN
+    sysRegs->CFGCHIP2&= 0xFFFFFDFF;// 1/0 => PowerDown/NormalOperation
+
+    // DATAPOL
+    sysRegs->CFGCHIP2|= 0x00000100;// 1/0 => Normal/Reversed
+
+    // SESNDEN
+    sysRegs->CFGCHIP2|= 0x00000020;// 1/0 => NormalOperation/SessionEnd
+
+    // VBDTCTEN
+    sysRegs->CFGCHIP2|= 0x00000010;// 1/0 => VBUS Comparator Enable/Disable
+/* Configure PHY PLL use and Select Source*/
+
+    // REF_FREQ[3:0]
+    sysRegs->CFGCHIP2|= 0x00000002;// 0010b=> 24MHzInputSource
+
+    // USB2PHY CLK MUX: Select External Source
+    sysRegs->CFGCHIP2&= 0xFFFFF7FF;// 1/0 => Internal/External(Pin)
+
+    // PHY_PLLON: On Simulation PHY PLL is OFF
+    sysRegs->CFGCHIP2|= 0x00000040;
+
+    // Wait Until PHY Clock is Good.
+    while((sysRegs->CFGCHIP2& 0x00020000)== 0);
+
+    #ifndef HS_ENABLE
+        // Disable high-speed
+        CSL_FINS(usbRegs->POWER, USB_OTG_POWER_HSEN, 0);
+    #else
+        // Enable high-speed
+        CSL_FINS(usbRegs->POWER, USB_OTG_POWER_HSEN, 1);
+    #endif
+
+    // Enable Interrupts
+    // Enable interrupts in OTG block
+    usbRegs->CTRLR&= 0xFFFFFFF7;
+
+    // Enable PDR2.0 Interrupt
+    usbRegs->INTRTXE= 0x1F;
+
+    // Enable All Core Tx Endpoints Interrupts + EP0 Tx/Rx interrupt
+    usbRegs->INTRRXE= 0x1E;
+
+    // Enable All Core Rx Endpoints Interrupts
+    // Enable all interrupts in OTG block
+    usbRegs->INTMSKSETR= 0x01FF1E1F;
+
+    // Enableall USB interruptsin MUSBMHDRC
+    usbRegs->INTRUSBE= 0xFF;
+
+    // Enable SUSPENDM so that suspend can be seen UTMI signal
+    CSL_FINS(usbRegs->POWER,USB_OTG_POWER_ENSUSPM,1);
+
+    // Clear all pending interrupts
+    usbRegs->INTCLRR= usbRegs->INTSRCR;
+
+    // Start a session in "HOST" Mode.
+    CSL_FINS(usbRegs->DEVCTL, USB_OTG_DEVCTL_SESSION, 1);
 
     Error_init(&eb);
     Task_Params_init(&params);
@@ -359,6 +475,7 @@ int main(void)
         BIOS_exit(0);
     }
 
+    // setup delay timer
     delayTimerSetup();
 
     BIOS_start();    /* does not return */
