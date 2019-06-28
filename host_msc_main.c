@@ -1,35 +1,3 @@
-/*
- * Copyright (C) 2016-2018 Texas Instruments Incorporated - http://www.ti.com/
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the
- * distribution.
- *
- * Neither the name of Texas Instruments Incorporated nor the names of
- * its contributors may be used to endorse or promote products derived
- * from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- */
 /* ========================================================================== */
 /*                             Include Files                                  */
 /* ========================================================================== */
@@ -66,12 +34,6 @@
 #include "usblib.h"
 #include "usbhost.h"
 #include "usbhmsc.h"
-
-
-#if (defined(SOC_AM65XX) && defined(BUILD_MCU))
-#include "intRouter.h"
-#endif
-
 #include <ti/drv/uart/UART_stdio.h>
 
 /*****************************************************************************
@@ -198,14 +160,8 @@ void usbCoreIntrHandler(uint32_t* pUsbParam);
 /*                                Macros                                      */
 /* ========================================================================== */
 
-#if defined (evmAM335x) || defined(evmAM437x) || defined(SOC_DRA72x) || defined(SOC_DRA75x)
-#define USB_INSTANCE            1       /* USB #1 (the HOST port) on the EVM */
-#else
-/* on idkAM572x, K2G USB0 is attached to USB-A connector */
 #define USB_INSTANCE            0       /* USB #0 (the USB-A host port) on the EVM */
                                         /* USB #1 (the USB-OTG port) on the EVM */
-#endif
-
 
 /*****************************************************************************
 * main 
@@ -216,21 +172,6 @@ Void taskFxn(UArg a0, UArg a1)
     USB_Params  usb_host_params;
     USB_Handle  usb_handle;
     int         rc;
-
-#ifdef USB3SS_EN
-    USB_Config* usb_config;
-#endif
-
-    //osalTimerTest();
-
-#ifdef USB3SS_EN
-    USB_getConfig(USB_INSTANCE, &usb_config);
-
-    if (usb_config!=0)
-    {
-        usb_config->usb30Enabled = 1;
-    }
-#endif
 
     usb_host_params.usbMode      = USB_HOST_MSC_MODE;
     usb_host_params.instanceNo   = USB_INSTANCE;
@@ -307,14 +248,6 @@ Void taskFxn(UArg a0, UArg a1)
 
 void usbHostIntrConfig(USB_Params* usbParams)
 {
-#if defined(SOC_AM65XX)
-    /* we are not utilizing interrupt in host mode for xHCI yet. 
-       if we enable interrupt, the interrupt pre-empts the main while loop that 
-       handles the USB host events. So return here */
-    return;
-
-#else
-#if defined(_TMS320C6X)
     HwiP_Handle hwiHandle = NULL;
     OsalRegisterIntrParams_t interruptRegParams;
 
@@ -329,42 +262,7 @@ void usbHostIntrConfig(USB_Params* usbParams)
     interruptRegParams.corepacConfig.arg = (uintptr_t)usbParams;
 
     Osal_RegisterInterrupt(&interruptRegParams,&hwiHandle);
-#else
-    int32_t mainIntNo = 0;
-    HwiP_Params hwiInputParams;
-
-    usb_osalHwiParamsInit(&hwiInputParams);
-
-    /* Construct Hwi object for this USB interrupts. */
-    hwiInputParams.name = NULL;
-    hwiInputParams.arg  = (uintptr_t)usbParams;
-    hwiInputParams.priority = 0x10U;
-    hwiInputParams.evtId = 0;
-
-    if (usbParams->instanceNo == 0) 
-    {
-        mainIntNo = SYS_INT_USB0;
-    } 
-#if !defined(SOC_OMAPL137) && !defined(SOC_OMAPL138)
-    else 
-    {
-        mainIntNo = SYS_INT_USB1;
-    }
-
-    hwiInputParams.triggerSensitivity = 0x3; /* interrupt edge triggered */
-#endif
-    usb_osalRegisterInterrupt(mainIntNo,
-                              (HwiP_Fxn)usbCoreIntrHandler,
-							  &hwiInputParams);
-#endif
-
-#if (defined(SOC_AM65XX) && defined(BUILD_MCU))
-    /* configure the interrupt router for MCU (R5) build */
-    usb_configIntRouter(usbParams->instanceNo,TRUE);
-#endif
-
     USB_irqConfig(usbParams->usbHandle, usbParams);
-#endif    
 }
 
 
@@ -431,8 +329,6 @@ MSCCallback(uint32_t ulInstance, uint32_t ulEvent, void *pvData)
     }
 }
 
-
-
 /* main entry point for USB host core interrupt handler with USB Wrapper setup
 * Matching interrupt call-back function API */
 void usbCoreIntrHandler(uint32_t* pUsbParam)
@@ -451,18 +347,8 @@ int main(void)
     Task_Params params;
     Error_Block eb;
 
-    System_printf("enter main()\n");
-
-
     Board_initCfg boardCfg;
-#if defined (SOC_AM65XX)
-    boardCfg = BOARD_INIT_PINMUX_CONFIG |
-        BOARD_INIT_UART_STDIO;
-#else 
-    boardCfg = BOARD_INIT_MODULE_CLOCK |
-        BOARD_INIT_PINMUX_CONFIG |
-        BOARD_INIT_UART_STDIO;
-#endif
+    boardCfg = BOARD_INIT_MODULE_CLOCK |BOARD_INIT_PINMUX_CONFIG |BOARD_INIT_UART_STDIO;
     Board_init(boardCfg);
 
     Error_init(&eb);
@@ -470,21 +356,10 @@ int main(void)
     params.stackSize = 0x2000;
     task = Task_create(taskFxn, &params, &eb);
     if (task == NULL) {
-        System_printf("Task_create() failed!\n");
         BIOS_exit(0);
     }
 
     delayTimerSetup();
-
-#if defined (idkAM574x) || (defined (idkAM572x) || defined (idkAM571x)) || defined (SOC_DRA72x) || defined (SOC_DRA75x)
-    /* USB 1 (1 base) */
-    CSL_xbarIrqConfigure(CSL_XBAR_IRQ_CPU_ID_MPU, CSL_XBAR_INST_MPU_IRQ_76,  CSL_XBAR_USB1_IRQ_INTR0);  /* main irq */
-    CSL_xbarIrqConfigure(CSL_XBAR_IRQ_CPU_ID_MPU, CSL_XBAR_INST_MPU_IRQ_77,  CSL_XBAR_USB1_IRQ_INTR1);  /* misc irq */
-
-    /* USB 2 (1 base) */
-    CSL_xbarIrqConfigure(CSL_XBAR_IRQ_CPU_ID_MPU, CSL_XBAR_INST_MPU_IRQ_78,  CSL_XBAR_USB2_IRQ_INTR0);  /* main irq */
-    CSL_xbarIrqConfigure(CSL_XBAR_IRQ_CPU_ID_MPU, CSL_XBAR_INST_MPU_IRQ_92,  CSL_XBAR_USB2_IRQ_INTR1);  /* misc irq */
-#endif
 
     BIOS_start();    /* does not return */
 
